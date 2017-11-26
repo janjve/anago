@@ -1,7 +1,7 @@
 import os
 import anago
-from anago.data.reader import load_data_and_labels, load_word_embeddings
-from anago.data.preprocess import prepare_preprocessor
+from anago.reader import load_data_and_labels, load_word_embeddings
+from anago.preprocess import prepare_preprocessor
 from anago.config import ModelConfig, TrainingConfig
 from anago.models import SeqLabeling
 
@@ -30,8 +30,7 @@ trainer = anago.Trainer(model,
                         training_config,
                         checkpoint_path=LOG_ROOT,
                         save_path=SAVE_ROOT,
-                        preprocessor=p,
-                        embeddings=embeddings)
+                        preprocessor=p)
 trainer.train(x_train, y_train, x_valid, y_valid)
 evaluator = anago.Evaluator(model, preprocessor=p)
 model.save(model_path)

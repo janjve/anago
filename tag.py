@@ -1,10 +1,10 @@
 import os
 import anago
-from anago.data.reader import load_data_and_labels, load_word_embeddings
-from anago.data.preprocess import prepare_preprocessor
+from anago.preprocess import prepare_preprocessor
 from anago.config import ModelConfig, TrainingConfig
 from anago.models import SeqLabeling
 import numpy as np
+from anago.reader import load_word_embeddings, load_data_and_labels
 
 DATA_ROOT = 'data/conll2003/en/ner'
 LOAD_ROOT = './models'  # trained model
@@ -29,8 +29,8 @@ predictions = model.predict(X)
 
 for words, prediction, sentence_length in zip(x_test, predictions, X[2]):
     nopad_prediction = prediction[:sentence_length.item()]
-    label_indeces = [np.argmax(x) for x in nopad_prediction]
-    labels = p.inverse_transform(label_indeces)
+    label_indices = [np.argmax(x) for x in nopad_prediction]
+    labels = p.inverse_transform(label_indices)
 
     print "\n".join(["{}\t{}".format(w, l) for w, l in zip(words, labels)])
     print ''
