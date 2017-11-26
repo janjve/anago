@@ -1,21 +1,22 @@
 # anaGo
-***anaGo*** is a state-of-the-art library for sequence labeling using Keras. 
+***anaGo*** is a Keras implementation of sequence labeling.
 
-anaGo can performs named-entity recognition (NER), part-of-speech tagging (POS tagging), semantic role labeling (SRL) and so on for **many languages**. 
-For example, **English Named-Entity Recognition** is shown in the following picture:
+anaGo can perform Named Entity Recognition (NER), Part-of-Speech tagging (POS tagging), semantic role labeling (SRL) and so on for **many languages**. 
+For example, the following picture shows **Named Entity Recognition in English**:
 <img src="https://github.com/Hironsan/anago/blob/docs/docs/images/example.en2.png?raw=true">
 
-**Japanese Named-Entity Recognition** is shown in the following picture:
+The following picture shows **Named Entity Recognition in Japanese**:
 <img src="https://github.com/Hironsan/anago/blob/docs/docs/images/example.ja2.png?raw=true">
 
-Similarly, **you can solve your task for your language.**
+Similarly, **you can solve your task (NER, POS,...) for your language.**
+You don't have to define features.
 You have only to prepare input and output data. :)
 
-## Feature Support
-anaGo provide following features:
-* learning your own task without any knowledge.
-* defining your own model.
-* ~~(Not yet supported)downloading learned model for many tasks. (e.g. NER, POS Tagging, etc...)~~
+## anaGo Support Features
+anaGo supports following features:
+* training the model without any features.
+* defining the custom model.
+* downloading pre-trained models.
 
 
 ## Install
@@ -34,8 +35,8 @@ $ pip install -r requirements.txt
 ```
 
 ## Data and Word Vectors
-The data must be in the following format(tsv).
-We provide an example in train.txt:
+Training data takes a tsv format.
+The following text is an example of training data:
 
 ```
 EU	B-ORG
@@ -52,71 +53,35 @@ Peter	B-PER
 Blackburn	I-PER
 ```
 
-You also need to download [GloVe vectors](https://nlp.stanford.edu/projects/glove/) and store it in *data/glove.6B* directory.
+anaGo supports pre-trained word embeddings like [GloVe vectors](https://nlp.stanford.edu/projects/glove/).
 
 ## Get Started
 ### Import
 First, import the necessary modules:
 ```python
-import os
 import anago
-from anago.data.reader import load_data_and_labels, load_word_embeddings
-from anago.data.preprocess import prepare_preprocessor
-from anago.config import ModelConfig, TrainingConfig
-from anago.models import SeqLabeling
-```
-They include loading modules, a preprocessor and configs.
-
-
-And set parameters to use later:
-```python
-DATA_ROOT = 'data/conll2003/en/ner'
-SAVE_ROOT = './models'  # trained model
-LOG_ROOT = './logs'     # checkpoint, tensorboard
-embedding_path = './data/glove.6B/glove.6B.100d.txt'
-model_config = ModelConfig()
-training_config = TrainingConfig()
+from anago.reader import load_data_and_labels
 ```
 
 ### Loading data
-
-After importing the modules, read data for training, validation and test:
+After importing the modules, load [training, validation and test dataset](https://github.com/Hironsan/anago/blob/master/data/conll2003/en/ner/):
 ```python
-train_path = os.path.join(DATA_ROOT, 'train.txt')
-valid_path = os.path.join(DATA_ROOT, 'valid.txt')
-test_path = os.path.join(DATA_ROOT, 'test.txt')
-x_train, y_train = load_data_and_labels(train_path)
-x_valid, y_valid = load_data_and_labels(valid_path)
-x_test, y_test = load_data_and_labels(test_path)
-```
-
-After reading the data, build preprocessor and load pre-trained word embeddings:
-```python
-p = prepare_preprocessor(x_train, y_train)
-embeddings = load_word_embeddings(p.vocab_word, embedding_path, model_config.word_embedding_size)
-model_config.vocab_size = len(p.vocab_word)
-model_config.char_vocab_size = len(p.vocab_char)
+x_train, y_train = load_data_and_labels('train.txt')
+x_valid, y_valid = load_data_and_labels('valid.txt')
+x_test, y_test = load_data_and_labels('test.txt')
 ```
 
 Now we are ready for training :)
 
 
 ### Training a model
-Let's train a model. For training a model, we can use ***Trainer***. 
-Trainer manages everything about training.
-Prepare an instance of Trainer class and give train data and valid data to train method:
+Let's train a model. To train a model, call `train` method:
 ```python
-model = SeqLabeling(model_config, embeddings, len(p.vocab_tag))
-trainer = anago.Trainer(model,
-                        training_config,
-                        checkpoint_path=LOG_ROOT,
-                        save_path=SAVE_ROOT,
-                        preprocessor=p,
-                        embeddings=embeddings)
-trainer.train(x_train, y_train, x_valid, y_valid)
+model = anago.Sequence()
+model.train(x_train, y_train, x_valid, y_valid)
 ```
 
-If training is progressing normally, progress bar will be displayed as follows:
+If training is progressing normally, progress bar would be displayed:
 
 ```commandline
 ...
@@ -134,13 +99,10 @@ Epoch 5/15
 
 
 ### Evaluating a model
-To evaluate the trained model, we can use ***Evaluator***.
-Evaluator performs evaluation.
-Prepare an instance of Evaluator class and give test data to eval method:
+To evaluate the trained model, call `eval` method:
 
 ```python
-evaluator = anago.Evaluator(model, preprocessor=p)
-evaluator.eval(x_test, y_test)
+model.eval(x_test, y_test)
 ```
 
 After evaluation, F1 value is output:
@@ -149,48 +111,52 @@ After evaluation, F1 value is output:
 ```
 
 ### Tagging a sentence
-To tag any text, we can use ***Tagger***.
-Prepare an instance of Tagger class and give text to tag method:
-```python
-tagger = anago.Tagger(model, preprocessor=p)
-```
-
 Let's try tagging a sentence, "President Obama is speaking at the White House."
-We can do it as follows:
+To tag a sentence, call `analyze` method:
+
 ```python
->>> sent = 'President Obama is speaking at the White House.'
->>> tagger.analyze(sent)
+>>> words = 'President Obama is speaking at the White House.'.split()
+>>> model.analyze(words)
 {
-  'text': 'President Obama is speaking at the White House.',
-  'words': [
-             'President',
-             'Obama',
-             'is',
-             'speaking',
-             'at',
-             'the',
-             'White',
-             'House.'
-            ],
-  'entities': [
-    {
-      'beginOffset': 1,
-      'endOffset': 2,
-      'score': 1.0,
-      'text': 'Obama',
-      'type': 'PER'
-    },
-    {
-      'beginOffset': 6,
-      'endOffset': 8,
-      'score': 1.0,
-      'text': 'White House.',
-      'type': 'ORG'
-    }
-  ]
+    "words": [
+        "President",
+        "Obama",
+        "is",
+        "speaking",
+        "at",
+        "the",
+        "White",
+        "House."
+    ],
+    "entities": [
+        {
+            "beginOffset": 1,
+            "endOffset": 2,
+            "score": 1,
+            "text": "Obama",
+            "type": "PER"
+        },
+        {
+            "beginOffset": 6,
+            "endOffset": 8,
+            "score": 1,
+            "text": "White House.",
+            "type": "ORG"
+        }
+    ]
 }
 ```
 
+### Downloading pre-trained models
+To download a pre-trained model, call `download` function:
+```python
+from anago.utils import download
+
+dir_path = 'models'
+url = 'https://storage.googleapis.com/chakki/datasets/public/models.zip'
+download(url, dir_path)
+model = anago.Sequence.load(dir_path)
+```
 
 ## Reference
 This library uses bidirectional LSTM + CRF model based on

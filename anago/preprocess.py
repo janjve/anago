@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import itertools
 import re
 
@@ -238,8 +237,27 @@ def dense_to_one_hot(labels_dense, num_classes, nlevels=1):
         raise ValueError('nlevels can take 1 or 2, not take {}.'.format(nlevels))
 
 
-def prepare_preprocessor(X, y, use_char=True):
-    p = WordPreprocessor()
+def prepare_preprocessor(X, y, use_char=True, vocab_init=None):
+    p = WordPreprocessor(vocab_init=vocab_init)
     p.fit(X, y)
 
     return p
+
+
+def filter_embeddings(embeddings, vocab, dim):
+    """Loads GloVe vectors in numpy array.
+
+    Args:
+        embeddings (dict): a dictionary of numpy array.
+        vocab (dict): word_index lookup table.
+
+    Returns:
+        numpy array: an array of word embeddings.
+    """
+    _embeddings = np.zeros([len(vocab), dim])
+    for word in vocab:
+        if word in embeddings:
+            word_idx = vocab[word]
+            _embeddings[word_idx] = embeddings[word]
+
+    return _embeddings
